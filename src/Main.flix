@@ -1,27 +1,36 @@
 ///
-/// This project's own module.
+/// Minimal reproduction: `TreeKind.Predicate.ParamUntyped` is dead by
+/// assignment and can appear in no syntax tree from any input.
 ///
-/// Code declared here is documented under `Hello` and gets its own page from
-/// `./flixw doc`. Anything left in the root namespace is instead folded into
-/// the standard library's own `Prelude` page, where it is indistinguishable
-/// from the library -- which is why only `main` lives out there, and only
-/// because Flix requires the entry point at the root.
+/// There is nothing to observe at runtime. This program compiles, runs and is
+/// correct. The defect is in the shape of the tree the parser builds, and in
+/// the fact that a later phase still matches on a kind the parser can never
+/// produce. See the README for how to confirm it.
 ///
-mod Hello {
+mod Datalog {
 
     ///
-    /// Returns the greeting for `name`.
+    /// Solves a small Datalog program abstracted over an untyped predicate.
     ///
-    /// Kept apart from `main` so there is something to test: `main` is
-    /// effectful and writes to the terminal, while this is pure and returns
-    /// its result.
+    /// `#(A)` is the reproduction: a predicate parameter list whose single
+    /// parameter carries no type ascription — precisely the shape
+    /// `Predicate.ParamUntyped` names. `Parser2.param()` is what builds it,
+    /// and it closes the node as `Predicate.Param` instead.
     ///
-    pub def greeting(name: String): String = "Hello, ${name}!"
+    pub def facts(): Vector[Int32] =
+        let p1 = #(A) -> #{
+            Local("seed").
+            A(42) :- Local("seed").
+        };
+        let p2 = #{
+            R(x) :- A(x).
+        };
+        query p1, p2 select x from R(x)
 
 }
 
 ///
-/// The main entry point.
+/// The entry point.
 ///
 def main(): Unit \ IO =
-    println(Hello.greeting("World"))
+    println("A = ${Datalog.facts()}")
